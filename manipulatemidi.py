@@ -139,7 +139,7 @@ if __name__ == "__main__":
                     source_0s.add((match.group(0), source_0))
 
     for match, source0 in source_0s:
-        logger.debug("Matched name: {}".format(match))
+        logger.debug("Regex searched for attribute 'name': {}".format(match))
 
         midi_file = midis[source_0]
         if not midi_file or not os.path.exists(midi_file):
@@ -152,5 +152,6 @@ if __name__ == "__main__":
         new_midi = shift_tones(midi_file, args.shift_semis)
         if not new_midi:
             logger.error("Unable to produce shifted midi.")
+            continue
 
         new_midi.save(midi_file)
