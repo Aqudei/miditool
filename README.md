@@ -10,4 +10,4 @@ This python script is primarily use to transpose the notes of a Midi file.
 
 ## Example how to run the Script
 
-python3 manipulatemidi.py --directory animals-house_of_the_rising_sun --regex b..s --shift-semis -12
+python3 manipulatemidi.py --directory folder_where_xml_file_is_located --regex b..s --shift-semis -12
