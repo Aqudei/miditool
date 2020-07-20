@@ -1,0 +1,4 @@
+venv
+animals*
+debug.log
+*.pyc
