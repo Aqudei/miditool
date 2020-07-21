@@ -10,13 +10,14 @@ import re
 
 formatter = logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter2 = logging.Formatter('%(message)s')
 fh = logging.FileHandler(filename='debug.log')
 ch = logging.StreamHandler()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 fh.setFormatter(formatter)
-ch.setFormatter(formatter)
+ch.setFormatter(formatter2)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
@@ -29,8 +30,11 @@ def shift_tones(orig_midi, semitones):
     midfile = mido.MidiFile(orig_midi)
     newfile = mido.MidiFile()
     newfile.ticks_per_beat = midfile.ticks_per_beat
-    print("Ticks per beat: {}".format(newfile.ticks_per_beat))
-    print("Total tracks: {}".format(len(midfile.tracks)))
+    logger.debug("Midi Information: {}".format(orig_midi))
+    logger.debug("\tTicks per beat: {}".format(newfile.ticks_per_beat))
+    logger.debug("\tTotal tracks: {}".format(len(midfile.tracks)))
+    logger.debug("\tMidi Type: {}".format(midfile.type))
+
     for idx, track in enumerate(midfile.tracks):
         new_track = mido.MidiTrack()
         for msg in track:
@@ -138,8 +142,14 @@ if __name__ == "__main__":
                         continue
                     source_0s.add((match.group(0), source_0))
 
+    if not source_0s:
+        logger.debug(
+            "Regex {} was not found in any of the <Playlist name='<regex>'/>".format(args.regex))
+        exit()
+
+    total_processed = 0
     for match, source0 in source_0s:
-        logger.debug("Regex searched for attribute 'name': {}".format(match))
+        logger.debug("Regex {} found at 'name': {}".format(args.regex, match))
 
         midi_file = midis[source_0]
         if not midi_file or not os.path.exists(midi_file):
@@ -147,7 +157,7 @@ if __name__ == "__main__":
                 "Cannot find the file source:0:{}, filename: {}! Skipping...".format(source_0, midi_file))
             continue
 
-        logger.debug("Processing {}:{}, midifile: {}".format(
+        logger.debug("Processing name:'{}', source-0{},\n\tmidifile: {}".format(
             match, source0, midi_file))
         new_midi = shift_tones(midi_file, args.shift_semis)
         if not new_midi:
@@ -155,3 +165,5 @@ if __name__ == "__main__":
             continue
 
         new_midi.save(midi_file)
+        total_processed = total_processed + 1
+    logger.debug("Total # of midis modified: {}".format(total_processed))
