@@ -10,7 +10,7 @@ import re
 
 formatter = logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-formatter2 = logging.Formatter('%(message)s')
+formatter2 = logging.Formatter('%(asctime)s - %(message)s')
 fh = logging.FileHandler(filename='debug.log')
 ch = logging.StreamHandler()
 logger = logging.getLogger(__name__)
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     for _file in os.listdir(args.directory):
         if _file.endswith(".ardour"):
             ardour_file = os.path.join(args.directory, _file)
-            logger.info("Found: {}".format(ardour_file))
+            logger.info("Found: {}\n".format(ardour_file))
             break
 
     if not ardour_file:
@@ -140,16 +140,17 @@ if __name__ == "__main__":
                         logger.warning(
                             "Error, source-0 has no valid value in <Playlist><Region>..</Region></Playlist>. Skipping...")
                         continue
-                    source_0s.add((match.group(0), source_0))
+                    source_0s.add((elem.attrib.get('name'), source_0))
 
     if not source_0s:
         logger.debug(
-            "Regex {} was not found in any of the <Playlist name='<regex>'/>".format(args.regex))
+            "Regex '{}' was not found in any of the <Playlist name='<regex>'/>".format(args.regex))
         exit()
 
     total_processed = 0
     for match, source0 in source_0s:
-        logger.debug("Regex {} found at 'name': {}".format(args.regex, match))
+        logger.debug(
+            "Regex '{}' found at 'name': {}".format(args.regex, match))
 
         midi_file = midis[source_0]
         if not midi_file or not os.path.exists(midi_file):
@@ -166,4 +167,5 @@ if __name__ == "__main__":
 
         new_midi.save(midi_file)
         total_processed = total_processed + 1
+        logger.info("")
     logger.debug("Total # of midis modified: {}".format(total_processed))
