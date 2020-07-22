@@ -115,8 +115,7 @@ def find_midis(root_xml, root_dir):
             for source_k in sources.keys():
                 if sources[source_k] == file:
                     sources[source_k] = os.path.join(r, file)
-    import pdb
-    pdb.set_trace()
+                    break
     return sources
 
 
@@ -175,9 +174,7 @@ if __name__ == "__main__":
     regex = re.compile(r"{}".format(args.regex or args.no_regex))
     root = ET.parse(ardour_file)
 
-    midis = find_midis(root, args.directory)
-
-    source_0s = set()
+    source_0s = dict()
 
     for elem in root.findall('.//Playlists/Playlist'):
         # How to make decisions based on attributes even in 2.6:
@@ -193,13 +190,18 @@ if __name__ == "__main__":
                         logger.warning(
                             "Error, source-0 has no valid value in <Playlist><Region>..</Region></Playlist>. Skipping...")
                         continue
-                    source_0s.add((playlist_name, source_0))
+                    source_0s[playlist_name.strip()] = source_0
 
     if not source_0s:
         exit()
 
+    logger.info("Looking for midi file in disk.")
+    midis = find_midis(root, args.directory)
     total_processed = 0
-    for playlist_name, source0 in source_0s:
+
+    for playlist_name in source_0s.keys():
+        source0_id = source_0s[playlist_name]
+
         logger.debug("Processing for {}".format(
             "--regex" if args.regex else "--no-regex"))
 
@@ -208,14 +210,15 @@ if __name__ == "__main__":
         logger.debug(
             "Regex '{}' {} at 'name': {}".format(args.regex or args.no_regex, 'found' if args.regex else 'not found', playlist_name))
 
-        midi_file = midis[source_0]
+        midi_file = midis[source0_id]
+
         if not midi_file or not os.path.exists(midi_file):
             logger.warning(
                 "Cannot find the file source:0:{}, filename: {}! Skipping...".format(source_0, midi_file))
             continue
 
         logger.debug("Processing name:'{}', source-0{},\n\tmidifile: {}".format(
-            playlist_name, source0, midi_file))
+            playlist_name, source0_id, midi_file))
         new_midi = shift_tones2(midi_file, args.shift_semis)
         if not new_midi:
             logger.error("Unable to produce shifted midi.")
