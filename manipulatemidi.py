@@ -195,8 +195,11 @@ if __name__ == "__main__":
     if not source_0s:
         exit()
 
-    logger.info("Looking for midi file in disk.")
+    logger.info("Looking for midi files in folder.")
+
     midis = find_midis(root, args.directory)
+    logger.info("Found a total of {} midi files.".format(len(midis)))
+    logger.info("="*40)
     total_processed = 0
 
     for playlist_name in source_0s.keys():
@@ -208,7 +211,7 @@ if __name__ == "__main__":
         logger.debug(
             "Number of semitones to shift: {:+d}".format(args.shift_semis))
         logger.debug(
-            "Regex '{}' {} at 'name': {}".format(args.regex or args.no_regex, 'found' if args.regex else 'not found', playlist_name))
+            "Regex '{}' {} Playlist 'name': {}".format(args.regex or args.no_regex, 'matched' if args.regex else 'no matched', playlist_name))
 
         midi_file = midis[source0_id]
 
