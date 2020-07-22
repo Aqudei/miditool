@@ -96,23 +96,27 @@ def shift_tones(orig_midi, semitones):
 
 def find_midis(root_xml, root_dir):
     disk_midis = dict()
+    sources = dict()
+
+    for source in root_xml.findall(".//Sources/Source"):
+        if not source.attrib['type'] == 'midi':
+            continue
+
+        source_id = source.attrib.get('id')
+        source_name = source.attrib.get('name')
+        sources[source_id] = source_name
+
     for r, dirs, files in os.walk(os.path.join(root_dir, 'interchange')):
         for file in files:
             fn, ext = os.path.splitext(file)
             if not ext == '.mid':
                 continue
-            disk_midis[file] = (os.path.join(r, file))
 
-    sources = dict()
-    for source in root_xml.findall(".//Sources/Source"):
-        if not source.attrib['type'] == 'midi':
-            continue
-
-        sources[source.attrib.get('id')] = source.attrib.get('name')
-
-    for k in sources.keys():
-        sources[k] = disk_midis.get(sources[k])
-
+            for source_k in sources.keys():
+                if sources[source_k] == file:
+                    sources[source_k] = os.path.join(r, file)
+    import pdb
+    pdb.set_trace()
     return sources
 
 
