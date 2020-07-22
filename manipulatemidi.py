@@ -33,17 +33,17 @@ def tone_name(tone_num):
     return "{}{}".format(noteString[noteIndex], octave)
 
 
-def display_notes(orig_midi, new_midi):
+def display_notes(orig_midi, new_midi, semitones):
     limit = 10
     done = set()
     logger.info(
-        "Showing first {} tones before and after shifting...".format(limit))
+        "Showing first {} notes before and after shifting {:+d} semitones...".format(limit, semitones))
     count = 0
     for orig_track, new_track in zip(orig_midi.tracks, new_midi.tracks):
         for orig_msg, new_msg in zip(orig_track, new_track):
             if orig_msg.type in ['note_on', 'note_off'] and new_msg.velocity > 0 and not orig_msg.note in done:
-                logger.info("\t{}({}) -> {}({})".format(orig_msg.note,
-                                                        tone_name(orig_msg.note), new_msg.note, tone_name(new_msg.note)))
+                logger.info("\tNote#: {}, Name: {} ---> Note#: {}, Name: {}".format(orig_msg.note,
+                                                                                    tone_name(orig_msg.note), new_msg.note, tone_name(new_msg.note)))
                 count = count + 1
                 done.add(orig_msg.note)
                 if count >= limit:
@@ -77,7 +77,7 @@ def shift_tones(orig_midi, semitones):
     # head, tail = os.path.split(args.file)
 
     # newfile.save(os.path.join(head, 'minus-2-semitones-{}'.format(tail)))
-    display_notes(midfile, newfile)
+    display_notes(midfile, newfile, semitones)
     return newfile
 
 
