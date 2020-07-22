@@ -4,6 +4,8 @@ import logging
 import os
 import xml.etree.ElementTree as ET
 import re
+import glob
+import music21
 
 # logging.getLogger().setLevel(logging.INFO)
 # Setup logger
@@ -48,6 +50,17 @@ def display_notes(orig_midi, new_midi, semitones):
                 done.add(orig_msg.note)
                 if count >= limit:
                     break
+
+
+def shift_tones2(orig_midi, semitones):
+    score = music21.converter.parse(orig_midi)
+    key = score.analyze('key')
+    print(f"Old Key Tonic name:{key.tonic.name}")
+
+    newscore = score.transpose(semitones)
+    key = newscore.analyze('key')
+    print(f"New Key Tonic name:{key.tonic.name}")
+    return newscore
 
 
 def shift_tones(orig_midi, semitones):
@@ -199,12 +212,12 @@ if __name__ == "__main__":
 
         logger.debug("Processing name:'{}', source-0{},\n\tmidifile: {}".format(
             playlist_name, source0, midi_file))
-        new_midi = shift_tones(midi_file, args.shift_semis)
+        new_midi = shift_tones2(midi_file, args.shift_semis)
         if not new_midi:
             logger.error("Unable to produce shifted midi.")
             continue
 
-        new_midi.save(midi_file)
+        new_midi.write('midi', midi_file)
         total_processed = total_processed + 1
         logger.info("="*40)
     logger.debug("Total # of midis modified: {}".format(total_processed))
