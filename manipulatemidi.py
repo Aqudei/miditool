@@ -10,7 +10,7 @@ import re
 
 formatter = logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-formatter2 = logging.Formatter('%(asctime)s - %(message)s')
+formatter2 = logging.Formatter('%(message)s')
 fh = logging.FileHandler(filename='debug.log')
 ch = logging.StreamHandler()
 logger = logging.getLogger(__name__)
@@ -21,8 +21,33 @@ ch.setFormatter(formatter2)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
-
 type_help = "Pass '--help' to show the help message."
+
+
+def tone_name(tone_num):
+    noteString = ["C", "C#", "D", "D#", "E",
+                  "F", "F#", "G", "G#", "A", "A#", "B"]
+
+    octave = int(tone_num / 12) - 1
+    noteIndex = (tone_num % 12)
+    return "{}{}".format(noteString[noteIndex], octave)
+
+
+def display_notes(orig_midi, new_midi):
+    limit = 10
+    done = set()
+    logger.info(
+        "Showing first {} tones before and after shifting...".format(limit))
+    count = 0
+    for orig_track, new_track in zip(orig_midi.tracks, new_midi.tracks):
+        for orig_msg, new_msg in zip(orig_track, new_track):
+            if orig_msg.type in ['note_on', 'note_off'] and new_msg.velocity > 0 and not orig_msg.note in done:
+                logger.info("\t{}({}) -> {}({})".format(orig_msg.note,
+                                                    tone_name(orig_msg.note), new_msg.note, tone_name(new_msg.note)))
+                count = count + 1
+                done.add(orig_msg.note)
+                if count >= limit:
+                    break
 
 
 def shift_tones(orig_midi, semitones):
@@ -52,7 +77,7 @@ def shift_tones(orig_midi, semitones):
     # head, tail = os.path.split(args.file)
 
     # newfile.save(os.path.join(head, 'minus-2-semitones-{}'.format(tail)))
-
+    display_notes(midfile, newfile)
     return newfile
 
 
@@ -87,11 +112,17 @@ if __name__ == "__main__":
                         help='The number of semitones to shift')
     parser.add_argument('--regex', type=str,
                         help='Regex pattern to match the MIDI file.')
-
+    parser.add_argument('--no-regex', type=str,
+                        help='Regex pattern to match the MIDI file.')
     args = parser.parse_args()
 
-    if not args.regex:
-        logger.error("Please supply a valid 'regex'. {}".format(type_help))
+    if not args.regex and not args.no_regex:
+        logger.error("Please supply a valid value for --regex or --no-regex")
+        exit()
+
+    if args.regex and args.no_regex:
+        logger.error(
+            "You cannot set values for --regex and --no-regex at the same time")
         exit()
 
     if not args.directory or not os.path.exists(args.directory):
@@ -115,6 +146,8 @@ if __name__ == "__main__":
         if _file.endswith(".ardour"):
             ardour_file = os.path.join(args.directory, _file)
             logger.info("Found: {}\n".format(ardour_file))
+            logger.info("="*40)
+
             break
 
     if not ardour_file:
@@ -122,7 +155,7 @@ if __name__ == "__main__":
             os.path.abspath(args.directory)))
         exit()
 
-    regex = re.compile(r"{}".format(args.regex))
+    regex = re.compile(r"{}".format(args.regex or args.no_regex))
     root = ET.parse(ardour_file)
 
     midis = find_midis(root, args.directory)
@@ -131,8 +164,11 @@ if __name__ == "__main__":
 
     for elem in root.findall('.//Playlists/Playlist'):
         # How to make decisions based on attributes even in 2.6:
-        match = regex.match(elem.attrib.get('name'))
-        if elem.attrib.get('name') and match:
+        playlist_name = elem.attrib.get('name')
+        match = regex.match(
+            playlist_name) if args.regex else not regex.match(playlist_name)
+
+        if match:
             for region in elem:
                 if region.tag == 'Region':
                     source_0 = region.attrib.get('source-0')
@@ -140,17 +176,17 @@ if __name__ == "__main__":
                         logger.warning(
                             "Error, source-0 has no valid value in <Playlist><Region>..</Region></Playlist>. Skipping...")
                         continue
-                    source_0s.add((elem.attrib.get('name'), source_0))
+                    source_0s.add((playlist_name, source_0))
 
     if not source_0s:
-        logger.debug(
-            "Regex '{}' was not found in any of the <Playlist name='<regex>'/>".format(args.regex))
         exit()
 
     total_processed = 0
-    for match, source0 in source_0s:
+    for playlist_name, source0 in source_0s:
+        logger.debug("Processing for {}".format(
+            "--regex" if args.regex else "--no-regex"))
         logger.debug(
-            "Regex '{}' found at 'name': {}".format(args.regex, match))
+            "Regex '{}' {} at 'name': {}".format(args.regex or args.no_regex, 'found' if args.regex else 'not found', playlist_name))
 
         midi_file = midis[source_0]
         if not midi_file or not os.path.exists(midi_file):
@@ -159,7 +195,7 @@ if __name__ == "__main__":
             continue
 
         logger.debug("Processing name:'{}', source-0{},\n\tmidifile: {}".format(
-            match, source0, midi_file))
+            playlist_name, source0, midi_file))
         new_midi = shift_tones(midi_file, args.shift_semis)
         if not new_midi:
             logger.error("Unable to produce shifted midi.")
@@ -167,5 +203,5 @@ if __name__ == "__main__":
 
         new_midi.save(midi_file)
         total_processed = total_processed + 1
-        logger.info("")
+        logger.info("="*40)
     logger.debug("Total # of midis modified: {}".format(total_processed))
