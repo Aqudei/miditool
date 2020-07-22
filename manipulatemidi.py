@@ -43,7 +43,7 @@ def display_notes(orig_midi, new_midi):
         for orig_msg, new_msg in zip(orig_track, new_track):
             if orig_msg.type in ['note_on', 'note_off'] and new_msg.velocity > 0 and not orig_msg.note in done:
                 logger.info("\t{}({}) -> {}({})".format(orig_msg.note,
-                                                    tone_name(orig_msg.note), new_msg.note, tone_name(new_msg.note)))
+                                                        tone_name(orig_msg.note), new_msg.note, tone_name(new_msg.note)))
                 count = count + 1
                 done.add(orig_msg.note)
                 if count >= limit:
@@ -185,6 +185,9 @@ if __name__ == "__main__":
     for playlist_name, source0 in source_0s:
         logger.debug("Processing for {}".format(
             "--regex" if args.regex else "--no-regex"))
+
+        logger.debug(
+            "Number of semitones to shift: {:+d}".format(args.shift_semis))
         logger.debug(
             "Regex '{}' {} at 'name': {}".format(args.regex or args.no_regex, 'found' if args.regex else 'not found', playlist_name))
 
