@@ -232,8 +232,6 @@ if __name__ == "__main__":
                 source_0s[route_name.strip()] = source_0
                 break
 
-    import pdb
-    pdb.set_trace()
     if not source_0s:
         logger.error("Did not find any 'midi' file to process!")
         exit()
