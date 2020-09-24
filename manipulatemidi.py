@@ -248,8 +248,8 @@ if __name__ == "__main__":
     for route_name in source_0s.keys():
         source0_id = source_0s[route_name]
 
-        logger.debug("Processing for {}".format(
-            "--regex" if args.regex else "--no-regex"))
+        logger.debug("Processing for {}='{}'".format(
+            "--regex" if args.regex else "--no-regex", regex.pattern))
 
         logger.debug(
             "Number of semitones to shift: {:+d}".format(args.shift_semis))
