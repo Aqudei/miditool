@@ -176,23 +176,66 @@ if __name__ == "__main__":
 
     source_0s = dict()
 
-    for elem in root.findall('.//Playlists/Playlist'):
+    # for elem in root.findall('.//Playlists/Playlist'):
+    #     # How to make decisions based on attributes even in 2.6:
+    #     playlist_name = elem.attrib.get('name')
+    #     match = regex.match(
+    #         playlist_name) if args.regex else not regex.match(playlist_name)
+
+    #     if not match:
+    #         logger.info(
+    #             f"Playlist with name {playlist_name} does not match regex {args.regex}")
+    #         continue
+
+    #     for region in elem:
+    #         if region.tag == 'Region':
+    #             source_0 = region.attrib.get('source-0')
+    #             if not source_0:
+    #                 logger.warning(
+    #                     "Error, source-0 has no valid value in <Playlist><Region>..</Region></Playlist>. Skipping...")
+    #                 continue
+    #             source_0s[playlist_name.strip()] = source_0
+
+    logger.info("Looking up routes...")
+    routes = list(root.findall('.//Routes/Route'))
+    for route in routes:
         # How to make decisions based on attributes even in 2.6:
-        playlist_name = elem.attrib.get('name')
+        route_name = route.attrib.get('name')
         match = regex.match(
-            playlist_name) if args.regex else not regex.match(playlist_name)
+            route_name) if args.regex else not regex.match(route_name)
 
-        if match:
-            for region in elem:
-                if region.tag == 'Region':
-                    source_0 = region.attrib.get('source-0')
-                    if not source_0:
-                        logger.warning(
-                            "Error, source-0 has no valid value in <Playlist><Region>..</Region></Playlist>. Skipping...")
-                        continue
-                    source_0s[playlist_name.strip()] = source_0
+        if not match:
+            continue
 
+        logger.info("Yes! A route with name '{}' matched regex '{}'".format(
+            route_name, args.regex))
+        midi_id = route.attrib.get("midi-playlist")
+
+        logger.info("Looking up playlists...")
+        for playlist in root.findall('.//Playlists/Playlist'):
+            if not playlist.attrib.get("id") == midi_id:
+                continue
+
+            logger.info("Yes! Playlist(name={},id={}) matched <midi_id>='{}'".format(
+                playlist.attrib.get("name"), playlist.attrib.get("id"), midi_id))
+
+            logger.info("Looking up regions...")
+            for region in playlist:
+                if not region.tag == 'Region':
+                    continue
+
+                source_0 = region.attrib.get('source-0')
+                if not source_0:
+                    logger.warning(
+                        "Error, source-0 has no valid value in <Playlist><Region>..</Region></Playlist>. Skipping...")
+                    continue
+                source_0s[route_name.strip()] = source_0
+                break
+
+    import pdb
+    pdb.set_trace()
     if not source_0s:
+        logger.error("Did not find any 'midi' file to process!")
         exit()
 
     logger.info("Looking for midi files in folder.")
@@ -202,8 +245,8 @@ if __name__ == "__main__":
     logger.info("="*40)
     total_processed = 0
 
-    for playlist_name in source_0s.keys():
-        source0_id = source_0s[playlist_name]
+    for route_name in source_0s.keys():
+        source0_id = source_0s[route_name]
 
         logger.debug("Processing for {}".format(
             "--regex" if args.regex else "--no-regex"))
@@ -211,7 +254,7 @@ if __name__ == "__main__":
         logger.debug(
             "Number of semitones to shift: {:+d}".format(args.shift_semis))
         logger.debug(
-            "Regex '{}' {} Playlist 'name': {}".format(args.regex or args.no_regex, 'matched' if args.regex else 'no matched', playlist_name))
+            "Regex '{}' {} Route 'name': {}".format(args.regex or args.no_regex, 'matched' if args.regex else 'no matched', route_name))
 
         midi_file = midis[source0_id]
 
@@ -221,7 +264,7 @@ if __name__ == "__main__":
             continue
 
         logger.debug("Processing name:'{}', source-0{},\n\tmidifile: {}".format(
-            playlist_name, source0_id, midi_file))
+            route_name, source0_id, midi_file))
         new_midi = shift_tones2(midi_file, args.shift_semis)
         if not new_midi:
             logger.error("Unable to produce shifted midi.")
