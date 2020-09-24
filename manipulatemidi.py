@@ -233,7 +233,8 @@ if __name__ == "__main__":
                 break
 
     if not source_0s:
-        logger.error("Did not find any 'midi' file to process!")
+        logger.error(
+            "Did not find any 'midi' file to process!\nEither one of (Route/Playlist/Region) is missing.")
         exit()
 
     logger.info("Looking up midi files in local disk.")
