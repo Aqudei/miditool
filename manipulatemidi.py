@@ -236,7 +236,7 @@ if __name__ == "__main__":
         logger.error("Did not find any 'midi' file to process!")
         exit()
 
-    logger.info("Looking for midi files in folder.")
+    logger.info("Looking up midi files in local disk.")
 
     midis = find_midis(root, args.directory)
     logger.info("Found a total of {} midi files.".format(len(midis)))
